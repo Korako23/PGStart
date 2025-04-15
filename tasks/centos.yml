@@ -1,0 +1,37 @@
+- name: Install PostgreSQL package
+  yum:
+    name: postgresql-server
+    state: present
+
+- name: Initialize PostgreSQL database (if not already initialized)
+  command: /usr/bin/postgresql-setup --initdb
+  args:
+    creates: /var/lib/pgsql/data/PG_VERSION
+
+- name: Configure PostgreSQL to listen on all addresses
+  lineinfile:
+    path: /var/lib/pgsql/data/postgresql.conf
+    regexp: '^#?listen_addresses ='
+    line: "listen_addresses = '*'"
+
+- name: Configure PostgreSQL pg_hba.conf for external connections and restrict student access
+  blockinfile:
+    path: /var/lib/pgsql/data/pg_hba.conf
+    block: |
+      # Allow connection for student only with peer_host
+      host    all             student         {{ peer_host }}/32         md5
+      # Reject student connections from any other addresses
+      host    all             student         0.0.0.0/0                reject
+      # Allow connection from external ip addresses
+      host    all             all             0.0.0.0/0                md5
+
+- name: Ensure PostgreSQL service is started and enabled
+  service:
+    name: postgresql
+    state: started
+    enabled: true
+
+- name: Reload PostgreSQL configuration
+  service:
+    name: postgresql
+    state: reloaded

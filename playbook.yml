@@ -1,0 +1,15 @@
+- hosts: all
+  become: yes
+  vars:
+    postgres_version: 15
+  tasks:
+    - name: Include tasks for Debian-based systems
+      include_tasks: tasks/debian.yml
+      when: ansible_os_family == "Debian"
+
+    - name: Include tasks for RedHat-based systems
+      include_tasks: tasks/centos.yml
+      when: ansible_os_family == "RedHat"
+
+    - name: Execute common tasks
+      include_tasks: tasks/common.yml

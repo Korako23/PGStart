@@ -1,0 +1,36 @@
+- name: Update APT cache
+  apt:
+    update_cache: yes
+
+- name: Install PostgreSQL package
+  apt:
+    name: "postgresql-{{ postgres_version }}"
+    state: present
+
+- name: Configure PostgreSQL to listen on all addresses
+  lineinfile:
+    path: "/etc/postgresql/{{ postgres_version }}/main/postgresql.conf"
+    regexp: '^#?listen_addresses ='
+    line: "listen_addresses = '*'"
+
+- name: Configure PostgreSQL pg_hba.conf for external connections and student access
+  blockinfile:
+    path: "/etc/postgresql/{{ postgres_version }}/main/pg_hba.conf"
+    block: |
+      # Allow connection for student only with peer_host
+      host    all             student         {{ peer_host }}/32         md5
+      # Reject student connections from any other addresses
+      host    all             student         0.0.0.0/0                reject
+      # Allow connection from external ip addresses
+      host    all             all             0.0.0.0/0                md5
+
+- name: Ensure PostgreSQL service is started and enabled
+  service:
+    name: postgresql
+    state: started
+    enabled: true
+
+- name: Reload PostgreSQL configuration
+  service:
+    name: postgresql
+    state: reloaded
